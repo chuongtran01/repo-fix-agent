@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 class AgentState(TypedDict):
@@ -11,22 +11,32 @@ class AgentState(TypedDict):
     user_request: str
     repo_path: str
 
-    relevant_files: list[str]
-    files_read: dict[str, str]
+    task_type: NotRequired[
+        Literal["bug_fix", "test_fix", "refactor",
+                "feature", "explanation", "unknown"]
+    ]
+    request_summary: NotRequired[str]
+    likely_areas: NotRequired[list[str]]
+    needs_tests: NotRequired[bool]
+    risk_level: NotRequired[Literal["low", "medium", "high"]]
+    constraints: NotRequired[list[str]]
 
-    plan: list[str]
-    changed_files: list[str]
-    original_files: dict[str, str]
+    relevant_files: NotRequired[list[str]]
+    files_read: NotRequired[dict[str, str]]
 
-    test_command: str
-    test_output: str
-    tests_passed: bool
+    plan: NotRequired[list[str]]
+    changed_files: NotRequired[list[str]]
+    original_files: NotRequired[dict[str, str]]
+
+    test_command: NotRequired[str]
+    test_output: NotRequired[str]
+    tests_passed: NotRequired[bool]
 
     iteration: int
     max_iterations: int
 
-    errors: list[str]
-    final_summary: str
+    errors: NotRequired[list[str]]
+    final_summary: NotRequired[str]
 
 
 def create_initial_state(
@@ -38,6 +48,12 @@ def create_initial_state(
 ) -> AgentState:
     """Build a full initial state for ``graph.invoke`` / ``graph.astream``."""
     state: AgentState = {
+        "task_type": "unknown",
+        "request_summary": "",
+        "likely_areas": [],
+        "needs_tests": True,
+        "risk_level": "medium",
+        "constraints": [],
         "user_request": user_request,
         "repo_path": repo_path,
         "relevant_files": [],

@@ -19,7 +19,7 @@ class GeminiChatModel:
     def __init__(
         self,
         *,
-        model: str = "gemini-2.0-flash",
+        model: str = "gemini-2.5-flash",
         temperature: float = 0.0,
         api_key: str | None = None,
         **kwargs: Any,
