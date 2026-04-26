@@ -54,5 +54,5 @@ def run_git_command(
         cwd=str(Path(repo_path).resolve()),
         returncode=-1,
         success=False,
-        error=f"Git command not allowed: git {.join(args)}",
+        error=f"Git command not allowed: git {' '.join(args)}",
     )
