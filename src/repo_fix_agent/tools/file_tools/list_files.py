@@ -2,8 +2,8 @@ from typing import List
 
 from langchain_core.tools import tool
 
-from ._helpers import iter_repo_files, resolve_repo
-from .constants import IGNORE_EXTENSIONS, MAX_FILES
+from ._helpers import iter_repo_files, resolve_repo, should_skip_path
+from .constants import MAX_FILES
 
 
 @tool
@@ -28,7 +28,7 @@ def list_files(repo_path: str) -> list[str]:
     results: List[str] = []
 
     for file_path in iter_repo_files(repo):
-        if file_path.suffix.lower() in IGNORE_EXTENSIONS:
+        if should_skip_path(file_path):
             continue
         rel_path = file_path.relative_to(repo).as_posix()
         results.append(rel_path)

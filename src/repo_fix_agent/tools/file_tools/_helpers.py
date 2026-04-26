@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .constants import IGNORE_DIRS
+from .constants import IGNORE_DIRS, IGNORE_EXTENSIONS
 
 
 def resolve_repo(repo_path: str) -> Path:
@@ -18,3 +18,11 @@ def iter_repo_files(repo: Path):
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
         for file in files:
             yield Path(root) / file
+
+
+def should_skip_path(path: Path) -> bool:
+    """Return ``True`` when a path should be ignored by repo tools."""
+    return (
+        path.name in IGNORE_DIRS
+        or path.suffix.lower() in IGNORE_EXTENSIONS
+    )

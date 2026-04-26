@@ -1,7 +1,6 @@
 from pathlib import Path
 from langchain_core.tools import tool
-from ._helpers import resolve_repo
-from .constants import IGNORE_DIRS, IGNORE_EXTENSIONS
+from ._helpers import resolve_repo, should_skip_path
 
 
 @tool
@@ -43,11 +42,7 @@ def get_file_tree(repo_path: str, max_depth: int = 3, max_entries: int = 300) ->
         except PermissionError:
             return
 
-        entries = [
-            e for e in entries
-            if e.name not in IGNORE_DIRS
-            and e.suffix.lower() not in IGNORE_EXTENSIONS
-        ]
+        entries = [e for e in entries if not should_skip_path(e)]
 
         for index, entry in enumerate(entries):
             if count >= max_entries:
