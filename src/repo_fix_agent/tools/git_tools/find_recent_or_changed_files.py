@@ -1,24 +1,12 @@
-# src/repo_fix_agent/tools/git_tools.py
-
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-from repo_fix_agent.tools.command_tools import run_git_command
 from langchain_core.tools import tool
 
-
-@tool
-def is_git_repo(repo_path: str) -> bool:
-    """
-        Returns True if repo_path is inside a git repository.
-        """
-
-    result = run_git_command(
-        repo_path, ["rev-parse", "--is-inside-work-tree"])
-
-    return result.returncode == 0 and result.stdout.strip() == "true"
+from repo_fix_agent.tools.command_tools import run_git_command
+from repo_fix_agent.tools.git_tools._helpers import is_git_repo
+from repo_fix_agent.tools.git_tools.models import FindRecentOrChangedFilesResult
 
 
 @tool
@@ -28,35 +16,48 @@ def find_recent_or_changed_files(
     changed_limit: int = 50,
 ) -> dict[str, Any]:
     """
-    Uses git commands (via command_tools) to find:
-    - staged files
-    - unstaged files
-    - untracked files
-    - recently modified files (from git history)
+    Collect Git file context useful for planning and debugging agent actions.
 
-    Returns structured result.
+    The tool gathers:
+    - currently staged files
+    - currently unstaged files
+    - untracked files
+    - recently touched files from Git history
+
+    Args:
+        repo_path: Repository root path.
+        recent_limit: Number of recent commits to scan for ``recent_files``.
+        changed_limit: Maximum number of files returned per changed-file bucket
+            (staged, unstaged, untracked).
+
+    Returns:
+        A dictionary with the shape:
+        - ``is_git_repo`` (bool): Whether the path is a Git repository.
+        - ``changed_files`` (list[str]): Deduplicated union of staged/unstaged/untracked.
+        - ``staged_files`` (list[str]): Paths from ``git diff --cached --name-only``.
+        - ``unstaged_files`` (list[str]): Paths from ``git diff --name-only``.
+        - ``untracked_files`` (list[str]): Paths from ``git ls-files --others --exclude-standard``.
+        - ``recent_files`` (list[str]): Unique file paths from recent commit history.
+        - ``errors`` (list[str]): Non-empty command errors collected during execution.
+
+    Behavior:
+        If ``repo_path`` is not a Git repository, returns empty file lists and
+        ``errors=["Not a git repository"]``.
     """
 
     errors: list[str] = []
 
-    # ---------------------------
-    # Check if git repo
-    # ---------------------------
-
     if not is_git_repo(repo_path):
-        return {
-            "is_git_repo": False,
-            "changed_files": [],
-            "staged_files": [],
-            "unstaged_files": [],
-            "untracked_files": [],
-            "recent_files": [],
-            "errors": ["Not a git repository"],
-        }
+        return FindRecentOrChangedFilesResult(
+            is_git_repo=False,
+            changed_files=[],
+            staged_files=[],
+            unstaged_files=[],
+            untracked_files=[],
+            recent_files=[],
+            errors=["Not a git repository"],
+        ).model_dump()
 
-    # ---------------------------
-    # Staged files
-    # ---------------------------
     staged_result = run_git_command(
         repo_path, ["diff", "--cached", "--name-only"])
 
@@ -70,9 +71,6 @@ def find_recent_or_changed_files(
     else:
         errors.append(staged_result.stderr or staged_result.error or "")
 
-    # ---------------------------
-    # Unstaged files
-    # ---------------------------
     unstaged_result = run_git_command(repo_path, ["diff", "--name-only"])
 
     unstaged_files = []
@@ -85,9 +83,6 @@ def find_recent_or_changed_files(
     else:
         errors.append(unstaged_result.stderr or unstaged_result.error or "")
 
-    # ---------------------------
-    # Untracked files
-    # ---------------------------
     untracked_result = run_git_command(
         repo_path,
         ["ls-files", "--others", "--exclude-standard"],
@@ -103,9 +98,6 @@ def find_recent_or_changed_files(
     else:
         errors.append(untracked_result.stderr or untracked_result.error or "")
 
-    # ---------------------------
-    # Recently touched files (git history)
-    # ---------------------------
     recent_result = run_git_command(
         repo_path,
         [
@@ -132,19 +124,16 @@ def find_recent_or_changed_files(
     else:
         errors.append(recent_result.stderr or recent_result.error or "")
 
-    # ---------------------------
-    # Combine changed files
-    # ---------------------------
     changed_files = sorted(
         set(staged_files + unstaged_files + untracked_files)
     )
 
-    return {
-        "is_git_repo": True,
-        "changed_files": changed_files,
-        "staged_files": staged_files,
-        "unstaged_files": unstaged_files,
-        "untracked_files": untracked_files,
-        "recent_files": recent_files,
-        "errors": [e for e in errors if e],
-    }
+    return FindRecentOrChangedFilesResult(
+        is_git_repo=True,
+        changed_files=changed_files,
+        staged_files=staged_files,
+        unstaged_files=unstaged_files,
+        untracked_files=untracked_files,
+        recent_files=recent_files,
+        errors=[e for e in errors if e],
+    ).model_dump()
