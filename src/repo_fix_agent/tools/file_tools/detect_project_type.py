@@ -4,6 +4,7 @@ from langchain_core.tools import tool
 
 from ._helpers import resolve_repo
 from .list_files import list_files
+from .models import ProjectTypeDetection
 
 
 @tool
@@ -83,4 +84,9 @@ def detect_project_type(repo_path: str) -> dict[str, Any]:
         signals.append("vite.config.*")
 
     primary = types[0] if types else "unknown"
-    return {"primary": primary, "types": types, "signals": signals}
+    detection = ProjectTypeDetection(
+        primary=primary,
+        types=types,
+        signals=signals,
+    )
+    return detection.model_dump()

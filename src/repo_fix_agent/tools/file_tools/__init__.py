@@ -3,6 +3,7 @@ from .find_test_files import find_test_files
 from .grep_code import grep_code
 from .get_file_tree import get_file_tree
 from .list_files import list_files
+from .models import GrepCodeMatch, PackageMetadataResult, ProjectTypeDetection
 from .read_file import read_file
 from .read_package_metadata import read_package_metadata
 from .search_code import search_code
@@ -16,4 +17,7 @@ __all__ = [
     "read_package_metadata",
     "get_file_tree",
     "find_test_files",
+    "GrepCodeMatch",
+    "ProjectTypeDetection",
+    "PackageMetadataResult",
 ]

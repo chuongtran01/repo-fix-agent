@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 from ._helpers import resolve_repo
 from .constants import IGNORE_EXTENSIONS, MAX_FILE_SIZE
 from .list_files import list_files
+from .models import GrepCodeMatch
 
 
 @tool
@@ -48,9 +49,12 @@ def grep_code(
 
         for line_number, line in enumerate(content.splitlines(), start=1):
             if regex.search(line):
-                results.append(
-                    {"file": file_path, "line": line_number, "match": line.strip()}
+                match = GrepCodeMatch(
+                    file=file_path,
+                    line=line_number,
+                    match=line.strip(),
                 )
+                results.append(match.model_dump())
                 if len(results) >= max_results:
                     return results
     return results

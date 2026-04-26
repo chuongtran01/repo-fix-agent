@@ -1,5 +1,6 @@
 from langchain_core.tools import tool
 from ._helpers import resolve_repo
+from .models import PackageMetadataResult
 from .read_file import read_file
 
 
@@ -51,4 +52,5 @@ def read_package_metadata(repo_path: str) -> dict[str, str]:
         except Exception:
             continue
 
-    return result
+    validated = PackageMetadataResult(files=result)
+    return validated.files
