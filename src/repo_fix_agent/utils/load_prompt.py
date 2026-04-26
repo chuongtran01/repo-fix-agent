@@ -1,4 +1,4 @@
-"""Load packaged markdown prompts from ``repo_fix_agent.prompts``."""
+"""Prompt loading helpers."""
 
 from pathlib import Path
 

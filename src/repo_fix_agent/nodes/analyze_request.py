@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from repo_fix_agent.graph.state import AgentState
 from repo_fix_agent.llm.model import GeminiChatModel
 from repo_fix_agent.schemas.analyze_request import AnalyzeRequestOutput
-from repo_fix_agent.tools.prompt_tools import load_prompt
+from repo_fix_agent.utils.load_prompt import load_prompt
 
 
 SYSTEM_PROMPT = load_prompt("analyze_request").strip()
