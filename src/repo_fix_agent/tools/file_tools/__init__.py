@@ -1,4 +1,5 @@
 from .detect_project_type import detect_project_type
+from .find_test_files import find_test_files
 from .grep_code import grep_code
 from .get_file_tree import get_file_tree
 from .list_files import list_files
@@ -14,4 +15,5 @@ __all__ = [
     "search_code",
     "read_package_metadata",
     "get_file_tree",
+    "find_test_files",
 ]
