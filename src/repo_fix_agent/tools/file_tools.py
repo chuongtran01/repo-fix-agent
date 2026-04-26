@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
-from typing import List
+from typing import List, Any
+import re
 
 from langchain_core.tools import tool
 
@@ -130,6 +131,7 @@ def read_file(repo_path: str, file_path: str) -> str:
     with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
         return f.read()
 
+
 # ---------------------------
 # search_code
 # ---------------------------
@@ -190,3 +192,64 @@ def search_code(repo_path: str, query: str, max_results: int = 20) -> List[str]:
     matches.sort(key=lambda x: x[1], reverse=True)
 
     return [file for file, _ in matches[:max_results]]
+
+
+# ---------------------------
+# grep_code
+# ---------------------------
+
+
+@tool
+def grep_code(repo_path: str, pattern: str, max_results: int = 50) -> list[dict[str, Any]]:
+    """
+    Run a regex search across repository text files and return line-level matches.
+
+    Args:
+        repo_path: Absolute or relative path to the repository root.
+        pattern: Regular expression pattern (compiled with ``re.IGNORECASE``).
+        max_results: Maximum number of matched lines to return.
+
+    Returns:
+        A list of match records with this shape:
+        ``{"file": <relative_path>, "line": <1-based line number>, "match": <line text>}``.
+
+    Notes:
+    - File candidates come from ``list_files(repo_path)``.
+    - Files above ``MAX_FILE_SIZE`` are skipped.
+    - Unreadable files and invalid reads are ignored.
+    - Returns early once ``max_results`` matches are collected.
+    """
+
+    repo = Path(repo_path).resolve()
+    regex = re.compile(pattern, re.IGNORECASE)
+
+    results: list[dict[str, Any]] = []
+
+    for file_path in list_files(repo_path):
+        full_path = repo / file_path
+
+        if full_path.suffix.lower() in IGNORE_EXTENSIONS:
+            continue
+
+        if full_path.stat().st_size > MAX_FILE_SIZE:
+            continue
+
+        try:
+            content = read_file(repo_path, file_path)
+        except Exception:
+            continue
+
+        for line_number, line in enumerate(content.splitlines(), start=1):
+            if regex.search(line):
+                results.append(
+                    {
+                        "file": file_path,
+                        "line": line_number,
+                        "match": line.strip(),
+                    }
+                )
+
+                if len(results) >= max_results:
+                    return results
+
+    return results
