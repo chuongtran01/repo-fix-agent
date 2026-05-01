@@ -1,9 +1,7 @@
-from langchain_core.tools import tool
 import re
+
 from .list_files import list_files
 
-
-@tool
 def find_test_files(repo_path: str, max_results: int = 100) -> list[str]:
     """
     Find likely test files by filename convention across common ecosystems.
@@ -24,9 +22,9 @@ def find_test_files(repo_path: str, max_results: int = 100) -> list[str]:
     - Candidate files come from ``list_files(repo_path)``.
     - Matching is case-insensitive.
     - Path separators are normalized to ``/`` before regex matching.
+    - This is heuristic and may miss unusual or custom test layouts.
     - Returns early when ``max_results`` is reached.
     """
-
     test_patterns = [
         re.compile(r".*\.test\.(ts|tsx|js|jsx)$", re.IGNORECASE),
         re.compile(r".*\.spec\.(ts|tsx|js|jsx)$", re.IGNORECASE),
@@ -40,10 +38,8 @@ def find_test_files(repo_path: str, max_results: int = 100) -> list[str]:
 
     for file_path in list_files(repo_path):
         normalized = file_path.replace("\\", "/")
-
         if any(pattern.match(normalized) for pattern in test_patterns):
             results.append(file_path)
-
         if len(results) >= max_results:
             return results
 

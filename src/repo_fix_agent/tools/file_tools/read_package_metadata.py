@@ -1,13 +1,9 @@
-from langchain_core.tools import tool
 from ._helpers import resolve_repo
 from .models import PackageMetadataResult
 from .read_file import read_file
-
-
-@tool
 def read_package_metadata(repo_path: str) -> dict[str, str]:
     """
-    Read common package/project metadata files from a repository root.
+    Read common package and project metadata files from the repo root.
 
     Args:
         repo_path: Absolute or relative path to the repository root.
@@ -20,10 +16,9 @@ def read_package_metadata(repo_path: str) -> dict[str, str]:
     - Candidate files include ecosystem markers such as ``package.json``,
       ``pyproject.toml``, ``requirements.txt``, ``Pipfile``, ``pom.xml``,
       ``build.gradle*``, ``README*``, and common frontend config files.
-    - File reads are delegated to ``read_file(...)``, so truncation/path-safety
-      behavior from that tool applies.
+    - File reads use ``read_file(...)``, so the same truncation and path-safety
+      behavior applies here.
     """
-
     metadata_files = [
         "package.json",
         "pyproject.toml",
@@ -42,15 +37,15 @@ def read_package_metadata(repo_path: str) -> dict[str, str]:
         "next.config.mjs",
     ]
 
+    repo = resolve_repo(repo_path)
     result: dict[str, str] = {}
 
     for file_path in metadata_files:
         try:
-            full_path = resolve_repo(repo_path) / file_path
+            full_path = repo / file_path
             if full_path.exists() and full_path.is_file():
                 result[file_path] = read_file(repo_path, file_path)
         except Exception:
             continue
 
-    validated = PackageMetadataResult(files=result)
-    return validated.files
+    return PackageMetadataResult(files=result).files

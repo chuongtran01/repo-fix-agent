@@ -1,14 +1,9 @@
-from typing import Any
-
-from langchain_core.tools import tool
-
 from ._helpers import resolve_repo
 from .list_files import list_files
 from .models import ProjectTypeDetection
 
 
-@tool
-def detect_project_type(repo_path: str) -> dict[str, Any]:
+def detect_project_type(repo_path: str) -> dict[str, object]:
     """
     Detect likely project/runtime types from common root-level marker files.
 
@@ -29,63 +24,52 @@ def detect_project_type(repo_path: str) -> dict[str, Any]:
         }
 
     Notes:
-        - Detection is heuristic and based on presence checks only.
+        - Detection is heuristic and based on marker-file presence only.
         - Multiple types can be returned for polyglot or full-stack repos.
     """
     repo = resolve_repo(repo_path)
-    files = set(list_files.func(repo_path))
+    files = set(list_files(repo_path))
 
     types: list[str] = []
     signals: list[str] = []
+
+    def add_type(project_type: str, signal: str) -> None:
+        if project_type not in types:
+            types.append(project_type)
+        signals.append(signal)
 
     def has(file_name: str) -> bool:
         return file_name in files or (repo / file_name).exists()
 
     if has("package.json"):
-        types.append("node")
-        signals.append("package.json")
+        add_type("node", "package.json")
     if has("tsconfig.json"):
-        types.append("typescript")
-        signals.append("tsconfig.json")
+        add_type("typescript", "tsconfig.json")
     if has("pyproject.toml"):
-        types.append("python")
-        signals.append("pyproject.toml")
+        add_type("python", "pyproject.toml")
     if has("requirements.txt"):
-        if "python" not in types:
-            types.append("python")
-        signals.append("requirements.txt")
+        add_type("python", "requirements.txt")
     if has("Pipfile"):
-        if "python" not in types:
-            types.append("python")
-        signals.append("Pipfile")
+        add_type("python", "Pipfile")
     if has("pom.xml"):
-        types.append("java-maven")
-        signals.append("pom.xml")
+        add_type("java-maven", "pom.xml")
     if has("build.gradle") or has("build.gradle.kts"):
-        types.append("java-gradle")
-        signals.append("build.gradle/build.gradle.kts")
+        add_type("java-gradle", "build.gradle/build.gradle.kts")
     if has("go.mod"):
-        types.append("go")
-        signals.append("go.mod")
+        add_type("go", "go.mod")
     if has("Cargo.toml"):
-        types.append("rust")
-        signals.append("Cargo.toml")
+        add_type("rust", "Cargo.toml")
     if has("composer.json"):
-        types.append("php")
-        signals.append("composer.json")
+        add_type("php", "composer.json")
     if has("Gemfile"):
-        types.append("ruby")
-        signals.append("Gemfile")
+        add_type("ruby", "Gemfile")
     if has("next.config.js") or has("next.config.ts") or has("next.config.mjs"):
-        types.append("nextjs")
-        signals.append("next.config.*")
+        add_type("nextjs", "next.config.*")
     if has("vite.config.ts") or has("vite.config.js"):
-        types.append("vite")
-        signals.append("vite.config.*")
+        add_type("vite", "vite.config.*")
 
-    primary = types[0] if types else "unknown"
     detection = ProjectTypeDetection(
-        primary=primary,
+        primary=types[0] if types else "unknown",
         types=types,
         signals=signals,
     )

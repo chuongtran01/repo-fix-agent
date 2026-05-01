@@ -1,17 +1,10 @@
 from pathlib import Path
-from typing import List
 
-from langchain_core.tools import tool
-
-from ._helpers import resolve_repo
 from .constants import MAX_FILE_SIZE
 from .list_files import list_files
-
-
-@tool
-def search_code(repo_path: str, query: str, max_results: int = 20) -> List[str]:
+def search_code(repo_path: str, query: str, max_results: int = 20) -> list[str]:
     """
-    Search repository files by filename and content, then return ranked matches.
+    Search repository files by filename and content, then return ranked paths.
 
     Args:
         repo_path: Absolute or relative path to the repository root.
@@ -25,20 +18,20 @@ def search_code(repo_path: str, query: str, max_results: int = 20) -> List[str]:
         - +2 if ``query`` appears in file content
 
     Notes:
-    - Uses ``list_files(repo_path)`` for traversal, so directory/file filtering
-      from that tool applies.
+    - Uses ``list_files(repo_path)`` for traversal, so the same repo filtering
+      rules apply here.
     - Content search is skipped for files larger than ``MAX_FILE_SIZE``.
     - Unreadable files are ignored.
     """
-    repo = resolve_repo(repo_path)
+    repo = Path(repo_path).resolve()
     query_lower = query.lower()
     matches: list[tuple[str, int]] = []
 
-    for file in list_files.func(repo_path):
-        full_path = Path(repo) / file
+    for file_path in list_files(repo_path):
+        full_path = repo / file_path
         score = 0
 
-        if query_lower in file.lower():
+        if query_lower in file_path.lower():
             score += 5
 
         try:
@@ -51,7 +44,7 @@ def search_code(repo_path: str, query: str, max_results: int = 20) -> List[str]:
             continue
 
         if score > 0:
-            matches.append((file, score))
+            matches.append((file_path, score))
 
-    matches.sort(key=lambda x: x[1], reverse=True)
-    return [file for file, _ in matches[:max_results]]
+    matches.sort(key=lambda item: item[1], reverse=True)
+    return [file_path for file_path, _ in matches[:max_results]]

@@ -1,20 +1,14 @@
 import re
-from typing import Any
+from pathlib import Path
 
-from langchain_core.tools import tool
-
-from ._helpers import resolve_repo
 from .constants import IGNORE_EXTENSIONS, MAX_FILE_SIZE
 from .list_files import list_files
 from .models import GrepCodeMatch
-
-
-@tool
 def grep_code(
     repo_path: str, pattern: str, max_results: int = 50
-) -> list[dict[str, Any]]:
+) -> list[dict[str, object]]:
     """
-    Run a regex search across repository text files and return line-level matches.
+    Run a regex search across repository text files and return matching lines.
 
     Args:
         repo_path: Absolute or relative path to the repository root.
@@ -28,14 +22,14 @@ def grep_code(
     Notes:
         - File candidates come from ``list_files(repo_path)``.
         - Files above ``MAX_FILE_SIZE`` are skipped.
-        - Unreadable files and invalid reads are ignored.
+        - Unreadable files are ignored.
         - Returns early once ``max_results`` matches are collected.
     """
-    repo = resolve_repo(repo_path)
+    repo = Path(repo_path).resolve()
     regex = re.compile(pattern, re.IGNORECASE)
-    results: list[dict[str, Any]] = []
+    results: list[dict[str, object]] = []
 
-    for file_path in list_files.func(repo_path):
+    for file_path in list_files(repo_path):
         full_path = repo / file_path
         if full_path.suffix.lower() in IGNORE_EXTENSIONS:
             continue
@@ -49,12 +43,14 @@ def grep_code(
 
         for line_number, line in enumerate(content.splitlines(), start=1):
             if regex.search(line):
-                match = GrepCodeMatch(
-                    file=file_path,
-                    line=line_number,
-                    match=line.strip(),
+                results.append(
+                    GrepCodeMatch(
+                        file=file_path,
+                        line=line_number,
+                        match=line.strip(),
+                    ).model_dump()
                 )
-                results.append(match.model_dump())
                 if len(results) >= max_results:
                     return results
+
     return results

@@ -17,6 +17,8 @@ USER_PROMPT = "User request: {user_request}"
 
 def analyze_request_node(state: AgentState) -> dict[str, object]:
     """Analyze the user's request and return a structured partial state update."""
+    print("Analyzing user request...")
+
     user_request = state["user_request"]
 
     llm = GeminiChatModel()

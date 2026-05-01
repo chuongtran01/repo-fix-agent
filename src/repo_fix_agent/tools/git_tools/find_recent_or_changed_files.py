@@ -2,21 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from langchain_core.tools import tool
-
 from repo_fix_agent.tools.command_tools import run_git_command
 from repo_fix_agent.tools.git_tools._helpers import is_git_repo
 from repo_fix_agent.tools.git_tools.models import FindRecentOrChangedFilesResult
 
-
-@tool
 def find_recent_or_changed_files(
     repo_path: str,
     recent_limit: int = 20,
     changed_limit: int = 50,
 ) -> dict[str, Any]:
     """
-    Collect Git file context useful for planning and debugging agent actions.
+    Collect recent and changed Git file context for a repository.
 
     The tool gathers:
     - currently staged files
@@ -44,7 +40,6 @@ def find_recent_or_changed_files(
         If ``repo_path`` is not a Git repository, returns empty file lists and
         ``errors=["Not a git repository"]``.
     """
-
     errors: list[str] = []
 
     if not is_git_repo(repo_path):
@@ -58,10 +53,8 @@ def find_recent_or_changed_files(
             errors=["Not a git repository"],
         ).model_dump()
 
-    staged_result = run_git_command(
-        repo_path, ["diff", "--cached", "--name-only"])
-
-    staged_files = []
+    staged_result = run_git_command(repo_path, ["diff", "--cached", "--name-only"])
+    staged_files: list[str] = []
     if staged_result.success:
         staged_files = [
             line.strip()
@@ -72,8 +65,7 @@ def find_recent_or_changed_files(
         errors.append(staged_result.stderr or staged_result.error or "")
 
     unstaged_result = run_git_command(repo_path, ["diff", "--name-only"])
-
-    unstaged_files = []
+    unstaged_files: list[str] = []
     if unstaged_result.success:
         unstaged_files = [
             line.strip()
@@ -87,8 +79,7 @@ def find_recent_or_changed_files(
         repo_path,
         ["ls-files", "--others", "--exclude-standard"],
     )
-
-    untracked_files = []
+    untracked_files: list[str] = []
     if untracked_result.success:
         untracked_files = [
             line.strip()
@@ -100,40 +91,27 @@ def find_recent_or_changed_files(
 
     recent_result = run_git_command(
         repo_path,
-        [
-            "log",
-            "--name-only",
-            "--pretty=format:",
-            f"-n{recent_limit}",
-        ],
+        ["log", "--name-only", "--pretty=format:", f"-n{recent_limit}"],
     )
-
     recent_files: list[str] = []
     if recent_result.success:
-        seen = set()
-
+        seen: set[str] = set()
         for line in recent_result.stdout.splitlines():
             file_path = line.strip()
-
             if not file_path:
                 continue
-
             if file_path not in seen:
                 seen.add(file_path)
                 recent_files.append(file_path)
     else:
         errors.append(recent_result.stderr or recent_result.error or "")
 
-    changed_files = sorted(
-        set(staged_files + unstaged_files + untracked_files)
-    )
-
     return FindRecentOrChangedFilesResult(
         is_git_repo=True,
-        changed_files=changed_files,
+        changed_files=sorted(set(staged_files + unstaged_files + untracked_files)),
         staged_files=staged_files,
         unstaged_files=unstaged_files,
         untracked_files=untracked_files,
         recent_files=recent_files,
-        errors=[e for e in errors if e],
+        errors=[error for error in errors if error],
     ).model_dump()

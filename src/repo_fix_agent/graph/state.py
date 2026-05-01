@@ -2,28 +2,73 @@
 
 from __future__ import annotations
 
-from typing import Literal, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 
 class AgentState(TypedDict):
     """State carried through the repo-fix workflow graph."""
 
-    user_request: str
-    repo_path: str
+    user_request: Annotated[str, "Original user goal or bug description"]
+    repo_path: Annotated[str, "Repository root path the agent may read and edit"]
 
     task_type: NotRequired[
-        Literal["bug_fix", "test_fix", "refactor",
-                "feature", "explanation", "unknown"]
+        Annotated[
+            Literal[
+                "bug_fix",
+                "test_fix",
+                "refactor",
+                "feature",
+                "explanation",
+                "unknown",
+            ],
+            "Classified task from analyze_request",
+        ]
     ]
-    request_summary: NotRequired[str]
-    likely_areas: NotRequired[list[str]]
-    needs_tests: NotRequired[bool]
-    risk_level: NotRequired[Literal["low", "medium", "high"]]
-    constraints: NotRequired[list[str]]
+    request_summary: NotRequired[
+        Annotated[str, "Short restatement of the user request"]
+    ]
+    likely_areas: NotRequired[
+        Annotated[list[str], "Modules, filenames, or keywords to focus inspection"]
+    ]
+    needs_tests: NotRequired[
+        Annotated[bool, "Whether tests or verification should run after changes"]
+    ]
+    risk_level: NotRequired[
+        Annotated[
+            Literal["low", "medium", "high"],
+            "Estimated risk of making edits for this task",
+        ]
+    ]
+    constraints: NotRequired[
+        Annotated[list[str], "Explicit constraints or safety notes from analysis"]
+    ]
 
-    relevant_files: NotRequired[list[str]]
-    files_read: NotRequired[dict[str, str]]
+    repo_summary: NotRequired[
+        Annotated[str, "High-level summary of the repo after inspection"]
+    ]
+    file_summaries: NotRequired[
+        Annotated[dict[str, dict], "Per-path structured summaries when content was summarized"]
+    ]
+    file_reasons: NotRequired[
+        Annotated[dict[str, str], "Why each path was selected for follow-up"]
+    ]
+    inspection_notes: NotRequired[
+        Annotated[list[str], "Inspection notes, including tool or read failures"]
+    ]
+    relevant_files: NotRequired[
+        Annotated[list[str], "Paths prioritized for planning or editing"]
+    ]
+    files_read: NotRequired[
+        Annotated[dict[str, str], "Full file text kept when under the raw size limit"]
+    ]
+    project_type: NotRequired[
+        Annotated[str, "Detected project type label (e.g. python, node)"]
+    ]
+    test_files: NotRequired[
+        Annotated[list[str], "Discovered or inferred test file paths"]
+    ]
 
+    # Placeholder for the next node to fill in
     plan: NotRequired[list[str]]
     changed_files: NotRequired[list[str]]
     original_files: NotRequired[dict[str, str]]

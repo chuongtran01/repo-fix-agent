@@ -82,3 +82,6 @@ logs/
 
 # LangSmith / optional local agent caches (if used)
 .langsmith/
+
+# Examples
+examples/
