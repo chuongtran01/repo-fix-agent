@@ -1,9 +1,11 @@
 import re
 from pathlib import Path
 
-from .constants import IGNORE_EXTENSIONS, MAX_FILE_SIZE
+from .constants import CONTENT_SEARCH_CHAR_LIMIT, IGNORE_EXTENSIONS
 from .list_files import list_files
 from .models import GrepCodeMatch
+
+
 def grep_code(
     repo_path: str, pattern: str, max_results: int = 50
 ) -> list[dict[str, object]]:
@@ -21,7 +23,7 @@ def grep_code(
 
     Notes:
         - File candidates come from ``list_files(repo_path)``.
-        - Files above ``MAX_FILE_SIZE`` are skipped.
+        - Files above ``CONTENT_SEARCH_CHAR_LIMIT`` are skipped.
         - Unreadable files are ignored.
         - Returns early once ``max_results`` matches are collected.
     """
@@ -33,7 +35,7 @@ def grep_code(
         full_path = repo / file_path
         if full_path.suffix.lower() in IGNORE_EXTENSIONS:
             continue
-        if full_path.stat().st_size > MAX_FILE_SIZE:
+        if full_path.stat().st_size > CONTENT_SEARCH_CHAR_LIMIT:
             continue
 
         try:

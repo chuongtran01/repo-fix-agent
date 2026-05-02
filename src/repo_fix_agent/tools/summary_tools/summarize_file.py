@@ -3,7 +3,7 @@ from __future__ import annotations
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from repo_fix_agent.llm.model import GeminiChatModel
-from repo_fix_agent.tools.file_tools.constants import MAX_FILE_SIZE
+from repo_fix_agent.tools.file_tools.constants import SUMMARY_INPUT_CHAR_LIMIT
 
 from .models import FileSummary
 
@@ -31,7 +31,7 @@ File content: ```text{content}```
 def summarize_file(
     path: str,
     content: str,
-    max_chars: int = MAX_FILE_SIZE,
+    max_chars: int = SUMMARY_INPUT_CHAR_LIMIT,
 ) -> FileSummary:
     """
     Summarize a source file into compact structured context for graph nodes.

@@ -5,6 +5,7 @@ from langchain_core.tools import tool
 
 from repo_fix_agent.graph.state import AgentState
 from repo_fix_agent.llm.model import GeminiChatModel
+from repo_fix_agent.tools.file_tools.constants import TOOL_READ_CHAR_LIMIT
 from repo_fix_agent.tools.file_tools import (
     detect_project_type as detect_project_type_impl,
     find_test_files as find_test_files_impl,
@@ -26,7 +27,7 @@ SYSTEM_PROMPT = load_prompt("inspect_repo_system").strip()
 USER_PROMPT = load_prompt("inspect_repo_user").strip()
 
 MAX_FILES_TO_KEEP = 8
-RAW_CONTENT_LIMIT = 12_000
+STATE_RAW_CONTENT_CHAR_LIMIT = 12_000
 
 
 def get_create_agent() -> Callable[..., object]:
@@ -99,10 +100,10 @@ def build_inspect_tools(repo_path: str) -> list[object]:
         """
         Read one file from the repository by relative path.
 
-        Use this after you already know which file to inspect. Large files may
-        be truncated.
+        Use this after you already know which file to inspect. Large files are
+        truncated to keep tool output bounded.
         """
-        return read_file_impl(repo_path, file_path)
+        return read_file_impl(repo_path, file_path, max_chars=TOOL_READ_CHAR_LIMIT)
 
     @tool
     def read_package_metadata() -> dict[str, str]:
@@ -163,7 +164,7 @@ def inspect_repo_node(state: AgentState) -> AgentState:
     user's request, request summary, ``likely_areas``, and ``needs_tests`` from
     state. The structured response picks candidate paths and notes; this node
     then reads up to ``MAX_FILES_TO_KEEP`` of those paths, keeping raw text
-    when under ``RAW_CONTENT_LIMIT`` characters and otherwise calling the
+    when under ``STATE_RAW_CONTENT_CHAR_LIMIT`` characters and otherwise calling the
     internal ``summarize_file`` helper (not an LLM-facing tool).
 
     Returns a partial state update with:
@@ -221,7 +222,7 @@ def inspect_repo_node(state: AgentState) -> AgentState:
         try:
             content = read_file_impl(repo_path, file_path)
 
-            if len(content) <= RAW_CONTENT_LIMIT:
+            if len(content) <= STATE_RAW_CONTENT_CHAR_LIMIT:
                 files_read[file_path] = content
             else:
                 summary = summarize_file(file_path, content)

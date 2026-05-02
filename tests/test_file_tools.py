@@ -47,6 +47,15 @@ def test_read_file_reads_content(sample_repo: Path) -> None:
     assert read_file(repo_path, "src/app.py") == "def login_user():\n    return 'ok'\n"
 
 
+def test_read_file_can_truncate_when_requested(sample_repo: Path) -> None:
+    repo_path = str(sample_repo)
+
+    truncated = read_file(repo_path, "src/app.py", max_chars=10)
+
+    assert truncated.startswith("def login_")
+    assert truncated.endswith("...[TRUNCATED]...")
+
+
 def test_list_files_filters_repo_contents(sample_repo: Path) -> None:
     repo_path = str(sample_repo)
 

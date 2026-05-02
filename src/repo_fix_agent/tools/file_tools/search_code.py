@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from .constants import MAX_FILE_SIZE
+from .constants import CONTENT_SEARCH_CHAR_LIMIT
 from .list_files import list_files
+
+
 def search_code(repo_path: str, query: str, max_results: int = 20) -> list[str]:
     """
     Search repository files by filename and content, then return ranked paths.
@@ -20,7 +22,8 @@ def search_code(repo_path: str, query: str, max_results: int = 20) -> list[str]:
     Notes:
     - Uses ``list_files(repo_path)`` for traversal, so the same repo filtering
       rules apply here.
-    - Content search is skipped for files larger than ``MAX_FILE_SIZE``.
+    - Content search is skipped for files larger than
+      ``CONTENT_SEARCH_CHAR_LIMIT``.
     - Unreadable files are ignored.
     """
     repo = Path(repo_path).resolve()
@@ -35,7 +38,7 @@ def search_code(repo_path: str, query: str, max_results: int = 20) -> list[str]:
             score += 5
 
         try:
-            if full_path.stat().st_size <= MAX_FILE_SIZE:
+            if full_path.stat().st_size <= CONTENT_SEARCH_CHAR_LIMIT:
                 with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
                 if query_lower in content.lower():
