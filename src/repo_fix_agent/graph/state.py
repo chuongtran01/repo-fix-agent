@@ -9,7 +9,8 @@ class AgentState(TypedDict):
     """State carried through the repo-fix workflow graph."""
 
     user_request: Annotated[str, "Original user goal or bug description"]
-    repo_path: Annotated[str, "Repository root path the agent may read and edit"]
+    repo_path: Annotated[str,
+                         "Repository root path the agent may read and edit"]
 
     task_type: NotRequired[
         Annotated[
@@ -47,7 +48,8 @@ class AgentState(TypedDict):
         Annotated[str, "High-level summary of the repo after inspection"]
     ]
     file_summaries: NotRequired[
-        Annotated[dict[str, dict], "Per-path structured summaries when content was summarized"]
+        Annotated[dict[str, dict],
+                  "Per-path structured summaries when content was summarized"]
     ]
     file_reasons: NotRequired[
         Annotated[dict[str, str], "Why each path was selected for follow-up"]
@@ -59,7 +61,8 @@ class AgentState(TypedDict):
         Annotated[list[str], "Paths prioritized for planning or editing"]
     ]
     files_read: NotRequired[
-        Annotated[dict[str, str], "Full file text kept when under the raw size limit"]
+        Annotated[dict[str, str],
+                  "Full file text kept when under the raw size limit"]
     ]
     project_type: NotRequired[
         Annotated[str, "Detected project type label (e.g. python, node)"]
@@ -68,9 +71,25 @@ class AgentState(TypedDict):
         Annotated[list[str], "Discovered or inferred test file paths"]
     ]
 
+    plan: NotRequired[
+        Annotated[list[str], "Ordered edit plan produced by the planning node"]
+    ]
+    target_files: NotRequired[
+        Annotated[list[str],
+                  "Files the planning node expects the editor to modify"]
+    ]
+    plan_risks: NotRequired[
+        Annotated[list[str],
+                  "Implementation or regression risks identified during planning"]
+    ]
+    test_strategy: NotRequired[
+        Annotated[str, "Suggested verification approach produced during planning"]
+    ]
+
     # Placeholder for the next node to fill in
-    plan: NotRequired[list[str]]
-    changed_files: NotRequired[list[str]]
+    changed_files: NotRequired[
+        Annotated[list[str], "Files actually modified by the editing node"]
+    ]
     original_files: NotRequired[dict[str, str]]
 
     test_command: NotRequired[str]
@@ -104,6 +123,9 @@ def create_initial_state(
         "relevant_files": [],
         "files_read": {},
         "plan": [],
+        "target_files": [],
+        "plan_risks": [],
+        "test_strategy": "",
         "changed_files": [],
         "original_files": {},
         "test_command": test_command,
