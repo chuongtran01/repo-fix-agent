@@ -27,3 +27,28 @@ class PackageMetadataResult(BaseModel):
         default_factory=dict,
         description="Mapping of metadata file path to file content",
     )
+
+
+class CreateFileResult(BaseModel):
+    """Structured result returned by ``create_file``."""
+
+    path: str = Field(description="Relative file path that was written")
+    created: bool = Field(description="Whether a new file was created")
+    overwritten: bool = Field(description="Whether an existing file was replaced")
+    parent_created: bool = Field(
+        description="Whether missing parent directories were created"
+    )
+
+
+class ReplaceInFileResult(BaseModel):
+    """Structured result returned by ``replace_in_file``."""
+
+    path: str = Field(description="Relative file path that was updated")
+    replacements: int = Field(description="Number of replacements applied")
+
+
+class ApplyPatchResult(BaseModel):
+    """Structured result returned by ``apply_patch``."""
+
+    path: str = Field(description="Relative file path that was updated")
+    hunks_applied: int = Field(description="Number of patch hunks applied")

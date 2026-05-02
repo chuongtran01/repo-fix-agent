@@ -5,12 +5,15 @@ from pathlib import Path
 import pytest
 
 from repo_fix_agent.tools.file_tools import (
+    apply_patch,
+    create_file,
     detect_project_type,
     find_test_files,
     grep_code,
     list_files,
     read_file,
     read_package_metadata,
+    replace_in_file,
     search_code,
 )
 
@@ -93,3 +96,61 @@ def test_detect_project_type_reports_expected_types(sample_repo: Path) -> None:
 def test_read_file_blocks_path_traversal(sample_repo: Path) -> None:
     with pytest.raises(ValueError, match="file_path must stay inside repo_path"):
         read_file(str(sample_repo), "../outside.txt")
+
+
+def test_create_file_creates_parents_and_reports_creation(sample_repo: Path) -> None:
+    repo_path = str(sample_repo)
+
+    result = create_file(repo_path, "nested/new_test.py", "assert True\n")
+
+    assert result == {
+        "path": "nested/new_test.py",
+        "created": True,
+        "overwritten": False,
+        "parent_created": True,
+    }
+    assert (sample_repo / "nested" / "new_test.py").read_text(encoding="utf-8") == "assert True\n"
+
+
+def test_replace_in_file_updates_exact_match(sample_repo: Path) -> None:
+    repo_path = str(sample_repo)
+
+    result = replace_in_file(
+        repo_path,
+        "src/app.py",
+        "return 'ok'",
+        "return 'fixed'",
+    )
+
+    assert result == {"path": "src/app.py", "replacements": 1}
+    assert "return 'fixed'" in read_file(repo_path, "src/app.py")
+
+
+def test_apply_patch_applies_multiple_hunks_atomically(sample_repo: Path) -> None:
+    repo_path = str(sample_repo)
+
+    result = apply_patch(
+        repo_path,
+        "src/app.py",
+        [
+            {"old": "def login_user():", "new": "def login_user(email: str):"},
+            {"old": "return 'ok'", "new": "return email"},
+        ],
+    )
+
+    assert result == {"path": "src/app.py", "hunks_applied": 2}
+    updated = read_file(repo_path, "src/app.py")
+    assert "def login_user(email: str):" in updated
+    assert "return email" in updated
+
+
+def test_apply_patch_rejects_ambiguous_single_hunk(tmp_path: Path) -> None:
+    file_path = tmp_path / "dup.py"
+    file_path.write_text("x = 1\nx = 1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="must appear exactly once"):
+        apply_patch(
+            str(tmp_path),
+            "dup.py",
+            [{"old": "x = 1", "new": "x = 2"}],
+        )
