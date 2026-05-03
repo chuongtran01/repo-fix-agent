@@ -43,14 +43,28 @@ def review_result_node(state: AgentState) -> dict[str, object]:
         HumanMessage(content=user_prompt),
     ]
     response: ReviewResultOutput = structured.invoke(messages)
+    review_notes = list(response.review_notes)
+    iteration = state["iteration"]
+    max_iterations = state["max_iterations"]
 
     update: dict[str, object] = {
         "review_outcome": response.outcome,
         "review_reason": response.reason,
-        "review_notes": response.review_notes,
+        "review_notes": review_notes,
     }
 
     if response.outcome == "retry":
-        update["iteration"] = state["iteration"] + 1
+        next_iteration = iteration + 1
+        if next_iteration >= max_iterations:
+            update["review_outcome"] = "failure"
+            update["review_reason"] = (
+                f"{response.reason} Retry limit reached after "
+                f"{max_iterations} iteration(s)."
+            ).strip()
+            update["review_notes"] = review_notes + [
+                "Stopped retrying because max_iterations was reached."
+            ]
+        else:
+            update["iteration"] = next_iteration
 
     return update

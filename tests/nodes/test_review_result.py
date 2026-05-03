@@ -96,3 +96,50 @@ def test_review_result_node_preserves_iteration_on_success(
         "review_reason": "Verification passed successfully.",
         "review_notes": [],
     }
+
+
+def test_review_result_node_stops_retry_at_max_iterations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = create_initial_state(
+        user_request="Fix failing login test",
+        repo_path="/tmp/repo",
+        test_command="pytest",
+        max_iterations=2,
+    )
+    state["tests_passed"] = False
+    state["test_output"] = "AssertionError: expected 200"
+    state["iteration"] = 1
+
+    class FakeStructured:
+        def invoke(self, messages: object) -> ReviewResultOutput:
+            return ReviewResultOutput(
+                outcome="retry",
+                reason="Tests still look recoverable with another edit.",
+                review_notes=["Try a smaller follow-up change."],
+            )
+
+    class FakeChat:
+        def with_structured_output(self, schema: object) -> FakeStructured:
+            return FakeStructured()
+
+    class FakeGemini:
+        @property
+        def chat(self) -> FakeChat:
+            return FakeChat()
+
+    monkeypatch.setattr(rr, "GeminiChatModel", lambda **_: FakeGemini())
+
+    update = rr.review_result_node(state)
+
+    assert update == {
+        "review_outcome": "failure",
+        "review_reason": (
+            "Tests still look recoverable with another edit. "
+            "Retry limit reached after 2 iteration(s)."
+        ),
+        "review_notes": [
+            "Try a smaller follow-up change.",
+            "Stopped retrying because max_iterations was reached.",
+        ],
+    }
