@@ -111,8 +111,22 @@ class AgentState(TypedDict):
         Annotated[bool, "Whether the run-tests phase completed successfully"]
     ]
 
-    iteration: int
-    max_iterations: int
+    # Review result phase
+    review_outcome: NotRequired[
+        Annotated[
+            Literal["success", "retry", "failure", "rollback"],
+            "Workflow decision produced after reviewing the latest verification result",
+        ]
+    ]
+    review_reason: NotRequired[
+        Annotated[str, "Short explanation for the review outcome decision"]
+    ]
+    review_notes: NotRequired[
+        Annotated[list[str], "Additional guidance or follow-up notes from result review"]
+    ]
+
+    iteration: Annotated[int, "Current retry-loop attempt count for the workflow"]
+    max_iterations: Annotated[int, "Maximum number of retry-loop attempts allowed"]
 
     errors: NotRequired[list[str]]
     final_summary: NotRequired[str]
@@ -147,6 +161,9 @@ def create_initial_state(
         "test_command": test_command,
         "test_output": "",
         "tests_passed": False,
+        "review_outcome": "failure",
+        "review_reason": "",
+        "review_notes": [],
         "iteration": 0,
         "max_iterations": max_iterations,
         "errors": [],
