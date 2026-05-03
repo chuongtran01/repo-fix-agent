@@ -12,6 +12,7 @@ class AgentState(TypedDict):
     repo_path: Annotated[str,
                          "Repository root path the agent may read and edit"]
 
+    # Analysis phase
     task_type: NotRequired[
         Annotated[
             Literal[
@@ -44,6 +45,7 @@ class AgentState(TypedDict):
         Annotated[list[str], "Explicit constraints or safety notes from analysis"]
     ]
 
+    # Inspection phase
     repo_summary: NotRequired[
         Annotated[str, "High-level summary of the repo after inspection"]
     ]
@@ -71,6 +73,7 @@ class AgentState(TypedDict):
         Annotated[list[str], "Discovered or inferred test file paths"]
     ]
 
+    # Planning phase
     plan: NotRequired[
         Annotated[list[str], "Ordered edit plan produced by the planning node"]
     ]
@@ -86,12 +89,18 @@ class AgentState(TypedDict):
         Annotated[str, "Suggested verification approach produced during planning"]
     ]
 
-    # Placeholder for the next node to fill in
+    # Editing phase
     changed_files: NotRequired[
         Annotated[list[str], "Files actually modified by the editing node"]
     ]
-    original_files: NotRequired[dict[str, str]]
+    original_files: NotRequired[
+        Annotated[dict[str, str], "Original content snapshots for files touched by editing"]
+    ]
+    edit_notes: NotRequired[
+        Annotated[list[str], "Notes from the editing node, including tool or edit failures"]
+    ]
 
+    # Test/review phase
     test_command: NotRequired[str]
     test_output: NotRequired[str]
     tests_passed: NotRequired[bool]
@@ -128,6 +137,7 @@ def create_initial_state(
         "test_strategy": "",
         "changed_files": [],
         "original_files": {},
+        "edit_notes": [],
         "test_command": test_command,
         "test_output": "",
         "tests_passed": False,
