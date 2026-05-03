@@ -100,10 +100,16 @@ class AgentState(TypedDict):
         Annotated[list[str], "Notes from the editing node, including tool or edit failures"]
     ]
 
-    # Test/review phase
-    test_command: NotRequired[str]
-    test_output: NotRequired[str]
-    tests_passed: NotRequired[bool]
+    # Run tests phase
+    test_command: NotRequired[
+        Annotated[str, "Verification command requested or selected for the run-tests node"]
+    ]
+    test_output: NotRequired[
+        Annotated[str, "Plain-text output or summary from the verification command"]
+    ]
+    tests_passed: NotRequired[
+        Annotated[bool, "Whether the run-tests phase completed successfully"]
+    ]
 
     iteration: int
     max_iterations: int
