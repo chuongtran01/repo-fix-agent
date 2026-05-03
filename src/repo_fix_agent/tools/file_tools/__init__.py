@@ -10,6 +10,7 @@ from .models import (
     CreateFileResult,
     GrepCodeMatch,
     PackageMetadataResult,
+    PatchChange,
     ProjectTypeDetection,
     ReplaceInFileResult,
 )
@@ -35,5 +36,6 @@ __all__ = [
     "GrepCodeMatch",
     "ProjectTypeDetection",
     "PackageMetadataResult",
+    "PatchChange",
     "ReplaceInFileResult",
 ]

@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
-
 from ._helpers import resolve_repo_file_path
-from .models import ApplyPatchResult
+from .models import ApplyPatchResult, PatchChange
 
 
 def apply_patch(
     repo_path: str,
     file_path: str,
-    changes: list[dict[str, Any]],
+    changes: list[PatchChange | dict[str, object]],
 ) -> dict[str, object]:
     """
     Apply multiple targeted replacements to a file atomically.
@@ -17,8 +15,9 @@ def apply_patch(
     Args:
         repo_path: Absolute or relative path to the repository root.
         file_path: Relative path to the file that should be updated.
-        changes: Ordered patch hunks. Each hunk must contain ``old`` and ``new``
-            keys and may include ``replace_all`` (bool, default ``False``).
+        changes: Ordered patch hunks. Each hunk supplies ``old``, ``new``, and
+            optional ``replace_all``. Plain dict inputs are accepted and
+            normalized into ``PatchChange``.
 
     Behavior:
     - Rejects path traversal outside ``repo_path``.
@@ -26,7 +25,7 @@ def apply_patch(
       hunk succeeds.
     - For a hunk with ``replace_all=False``, the ``old`` text must appear
       exactly once in the current working content.
-    - Raises ``ValueError`` for malformed hunks, missing text, or ambiguous
+    - Raises ``ValueError`` for empty ``old`` text, missing text, or ambiguous
       single-match edits.
 
     Returns:
@@ -39,16 +38,13 @@ def apply_patch(
     content = full_path.read_text(encoding="utf-8", errors="ignore")
     updated = content
 
-    for index, change in enumerate(changes, start=1):
-        if "old" not in change or "new" not in change:
-            raise ValueError(f"patch hunk {index} must include 'old' and 'new'")
+    normalized_changes = [PatchChange.model_validate(change) for change in changes]
 
-        old = change["old"]
-        new = change["new"]
-        replace_all = bool(change.get("replace_all", False))
+    for index, change in enumerate(normalized_changes, start=1):
+        old = change.old
+        new = change.new
+        replace_all = change.replace_all
 
-        if not isinstance(old, str) or not isinstance(new, str):
-            raise ValueError(f"patch hunk {index} 'old' and 'new' must be strings")
         if old == "":
             raise ValueError(f"patch hunk {index} 'old' text must not be empty")
 
@@ -71,5 +67,5 @@ def apply_patch(
 
     return ApplyPatchResult(
         path=file_path,
-        hunks_applied=len(changes),
+        hunks_applied=len(normalized_changes),
     ).model_dump()

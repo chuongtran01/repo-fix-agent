@@ -47,6 +47,20 @@ class ReplaceInFileResult(BaseModel):
     replacements: int = Field(description="Number of replacements applied")
 
 
+class PatchChange(BaseModel):
+    """One patch hunk used by ``apply_patch``."""
+
+    old: str = Field(description="Exact text to replace")
+    new: str = Field(description="Replacement text")
+    replace_all: bool = Field(
+        default=False,
+        description=(
+            "Whether to replace every occurrence of `old` instead of requiring "
+            "exactly one match"
+        ),
+    )
+
+
 class ApplyPatchResult(BaseModel):
     """Structured result returned by ``apply_patch``."""
 
