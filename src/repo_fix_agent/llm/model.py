@@ -13,7 +13,8 @@ class GeminiChatModel:
     Thin wrapper around ``ChatGoogleGenerativeAI`` for consistent setup across nodes.
 
     Reads ``GOOGLE_API_KEY`` or ``GEMINI_API_KEY`` from the environment when
-    ``api_key`` is not passed explicitly.
+    ``api_key`` is not passed explicitly. Raises ``ValueError`` when no API key
+    is available so callers fail fast with a clear configuration error.
     """
 
     def __init__(
@@ -29,12 +30,15 @@ class GeminiChatModel:
             or os.environ.get("GOOGLE_API_KEY")
             or os.environ.get("GEMINI_API_KEY")
         )
+        if not resolved_key:
+            raise ValueError(
+                "Missing Gemini API key. Set GOOGLE_API_KEY or GEMINI_API_KEY."
+            )
         init_kwargs: dict[str, Any] = {
             "model": model,
             "temperature": temperature,
         }
-        if resolved_key is not None:
-            init_kwargs["api_key"] = resolved_key
+        init_kwargs["api_key"] = resolved_key
         init_kwargs.update(kwargs)
 
         self._chat = ChatGoogleGenerativeAI(**init_kwargs)

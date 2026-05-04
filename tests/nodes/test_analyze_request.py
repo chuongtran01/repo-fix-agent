@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
 from repo_fix_agent.graph.state import create_initial_state
 from repo_fix_agent.nodes import analyze_request as ar
@@ -59,7 +58,10 @@ def test_analyze_request_no_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
         repo_path="/tmp/repo",
         test_command="pytest",
     )
-    with pytest.raises(ValidationError):
+    with pytest.raises(
+        ValueError,
+        match="Missing Gemini API key. Set GOOGLE_API_KEY or GEMINI_API_KEY.",
+    ):
         ar.analyze_request_node(state)
 
 
