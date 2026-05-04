@@ -177,3 +177,38 @@ def test_run_tests_rejects_disallowed_llm_recommendation(monkeypatch: pytest.Mon
     assert update["tests_passed"] is False
     assert "Model recommended disallowed command: npm run dev" in update["test_output"]
     assert update["errors"] == ["Disallowed recommended test command: npm run dev"]
+
+
+def test_run_tests_rejects_broad_allowed_but_non_test_command(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = create_initial_state(
+        user_request="Verify a change",
+        repo_path="/tmp/repo",
+        test_command="",
+    )
+
+    class FakeStructured:
+        def invoke(self, messages: object) -> RunTestsOutput:
+            return RunTestsOutput(
+                command="git diff",
+                skipped=False,
+                summary="Use git diff to inspect the change before testing.",
+            )
+
+    class FakeChat:
+        def with_structured_output(self, schema: object) -> FakeStructured:
+            return FakeStructured()
+
+    class FakeGemini:
+        @property
+        def chat(self) -> FakeChat:
+            return FakeChat()
+
+    monkeypatch.setattr(rt, "GeminiChatModel", lambda **_: FakeGemini())
+
+    update = rt.run_tests_node(state)
+
+    assert update["tests_passed"] is False
+    assert "Model recommended disallowed command: git diff" in update["test_output"]
+    assert update["errors"] == ["Disallowed recommended test command: git diff"]

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from .constants import ALLOWED_TEST_PREFIXES
-from .helpers import is_prefix, normalize_command
+from .helpers import normalize_command
+from .is_test_command_allowed import is_test_command_allowed
 from .models import CommandResult
 from .run_command import run_command
 
@@ -14,7 +14,7 @@ def run_test_command(
     """Run a test/typecheck/lint command through safe executor."""
     cmd = normalize_command(command)
 
-    if not any(is_prefix(cmd, allowed) for allowed in ALLOWED_TEST_PREFIXES):
+    if not is_test_command_allowed(cmd):
         return CommandResult(
             command=cmd,
             cwd=str(Path(repo_path).resolve()),

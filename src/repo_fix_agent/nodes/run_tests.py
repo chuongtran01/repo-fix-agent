@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from repo_fix_agent.graph.state import AgentState
 from repo_fix_agent.llm.model import GeminiChatModel
 from repo_fix_agent.schemas.run_tests import RunTestsOutput
-from repo_fix_agent.tools.command_tools.is_command_allowed import is_command_allowed
+from repo_fix_agent.tools.command_tools.is_test_command_allowed import is_test_command_allowed
 from repo_fix_agent.tools.command_tools.run_test_command import run_test_command
 from repo_fix_agent.utils.load_prompt import load_prompt
 
@@ -90,7 +90,7 @@ def run_tests_node(state: AgentState) -> dict[str, object]:
                 "test_output": message,
                 "errors": existing_errors + [message],
             }
-        if not is_command_allowed(command):
+        if not is_test_command_allowed(command):
             message = (
                 recommendation.summary
                 or f"Model recommended a disallowed verification command: {command}"
