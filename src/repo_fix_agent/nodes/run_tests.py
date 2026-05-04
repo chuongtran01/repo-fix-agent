@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -57,6 +59,52 @@ def _recommend_test_command(state: AgentState) -> RunTestsOutput:
     return structured.invoke(messages)
 
 
+def _load_package_scripts(repo_path: str) -> dict[str, object]:
+    """Return package.json scripts when available, otherwise an empty mapping."""
+    package_json = Path(repo_path).resolve() / "package.json"
+    if not package_json.exists():
+        return {}
+
+    try:
+        data = json.loads(package_json.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    scripts = data.get("scripts", {})
+    return scripts if isinstance(scripts, dict) else {}
+
+
+def _infer_test_command(state: AgentState) -> tuple[str, str] | None:
+    """Infer a safe verification command from repo context before asking the LLM."""
+    repo_path = state["repo_path"]
+    project_type = state.get("project_type", "unknown")
+    test_files = state.get("test_files", [])
+    scripts = _load_package_scripts(repo_path)
+
+    if project_type == "python" or any(path.endswith(".py") for path in test_files):
+        return ("pytest", "Inferred pytest from Python project signals or discovered Python tests.")
+
+    if project_type == "java-maven":
+        return ("mvn test", "Inferred Maven test command from project type.")
+
+    if project_type == "java-gradle":
+        return ("gradle test", "Inferred Gradle test command from project type.")
+
+    if project_type in {"node", "typescript", "nextjs", "vite"} or scripts:
+        for script_name, command in (
+            ("test", "npm run test"),
+            ("typecheck", "npm run typecheck"),
+            ("lint", "npm run lint"),
+        ):
+            if script_name in scripts:
+                return (
+                    command,
+                    f"Inferred {command} from package.json scripts.",
+                )
+
+    return None
+
+
 def run_tests_node(state: AgentState) -> dict[str, object]:
     """Choose and run the safest useful verification command for the repo state."""
     print("Running tests...")
@@ -74,37 +122,46 @@ def run_tests_node(state: AgentState) -> dict[str, object]:
     recommendation: RunTestsOutput | None = None
 
     if not command:
-        recommendation = _recommend_test_command(state)
-        if recommendation.skipped:
-            message = recommendation.summary or "Skipped tests based on run_tests recommendation."
-            return {
-                "tests_passed": True,
-                "test_output": message,
-            }
+        inferred = _infer_test_command(state)
+        if inferred is not None:
+            command, inferred_summary = inferred
+            recommendation = RunTestsOutput(
+                command=command,
+                skipped=False,
+                summary=inferred_summary,
+            )
+        else:
+            recommendation = _recommend_test_command(state)
+            if recommendation.skipped:
+                message = recommendation.summary or "Skipped tests based on run_tests recommendation."
+                return {
+                    "tests_passed": True,
+                    "test_output": message,
+                }
 
-        command = recommendation.command.strip()
-        if not command:
-            message = recommendation.summary or "No safe test command could be determined."
-            return {
-                "tests_passed": False,
-                "test_output": message,
-                "errors": existing_errors + [message],
-            }
-        if not is_test_command_allowed(command):
-            message = (
-                recommendation.summary
-                or f"Model recommended a disallowed verification command: {command}"
-            )
-            detailed = (
-                f"No safe automated test command could be determined.\n\n"
-                f"Model recommended disallowed command: {command}\n\n"
-                f"Reason: {message}"
-            )
-            return {
-                "tests_passed": False,
-                "test_output": detailed,
-                "errors": existing_errors + [f"Disallowed recommended test command: {command}"],
-            }
+            command = recommendation.command.strip()
+            if not command:
+                message = recommendation.summary or "No safe test command could be determined."
+                return {
+                    "tests_passed": False,
+                    "test_output": message,
+                    "errors": existing_errors + [message],
+                }
+            if not is_test_command_allowed(command):
+                message = (
+                    recommendation.summary
+                    or f"Model recommended a disallowed verification command: {command}"
+                )
+                detailed = (
+                    f"No safe automated test command could be determined.\n\n"
+                    f"Model recommended disallowed command: {command}\n\n"
+                    f"Reason: {message}"
+                )
+                return {
+                    "tests_passed": False,
+                    "test_output": detailed,
+                    "errors": existing_errors + [f"Disallowed recommended test command: {command}"],
+                }
 
     result = run_test_command(state["repo_path"], command)
     summary = recommendation.summary if recommendation else ""

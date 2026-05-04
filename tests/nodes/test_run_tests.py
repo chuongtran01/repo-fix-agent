@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from repo_fix_agent.graph.state import create_initial_state
@@ -60,10 +62,10 @@ def test_run_tests_asks_llm_for_command_when_missing(monkeypatch: pytest.MonkeyP
         test_command="",
     )
     state["request_summary"] = "Fix login test"
-    state["project_type"] = "python"
-    state["test_strategy"] = "Run pytest after the edit."
+    state["project_type"] = "unknown"
+    state["test_strategy"] = "Choose a safe verification command."
     state["changed_files"] = ["src/auth.py"]
-    state["test_files"] = ["tests/test_auth.py"]
+    state["test_files"] = []
 
     captured: dict[str, object] = {}
 
@@ -106,7 +108,81 @@ def test_run_tests_asks_llm_for_command_when_missing(monkeypatch: pytest.MonkeyP
 
     messages = captured["messages"]
     assert isinstance(messages, list)
-    assert "tests/test_auth.py" in messages[1].content
+    assert "Choose a safe verification command." in messages[1].content
+
+
+def test_run_tests_inferrs_pytest_before_calling_llm(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    repo_path = tmp_path
+    (repo_path / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
+
+    state = create_initial_state(
+        user_request="Fix login test",
+        repo_path=str(repo_path),
+        test_command="",
+    )
+    state["project_type"] = "python"
+    state["test_files"] = ["tests/test_auth.py"]
+
+    def fake_run_test_command(repo_path: str, command: str, timeout: int = 120) -> CommandResult:
+        assert command == "pytest"
+        return CommandResult(
+            command=["pytest"],
+            cwd=repo_path,
+            stdout="ok\n",
+            stderr="",
+            returncode=0,
+            success=True,
+        )
+
+    monkeypatch.setattr(rt, "run_test_command", fake_run_test_command)
+    monkeypatch.setattr(rt, "_recommend_test_command", lambda state: pytest.fail("LLM should not be called"))
+
+    update = rt.run_tests_node(state)
+
+    assert update["tests_passed"] is True
+    assert update["test_command"] == "pytest"
+    assert "Inferred pytest" in update["test_output"]
+
+
+def test_run_tests_inferrs_npm_script_before_calling_llm(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    repo_path = tmp_path
+    (repo_path / "package.json").write_text(
+        json.dumps({"scripts": {"typecheck": "tsc --noEmit"}}),
+        encoding="utf-8",
+    )
+
+    state = create_initial_state(
+        user_request="Verify a Next.js change",
+        repo_path=str(repo_path),
+        test_command="",
+    )
+    state["project_type"] = "nextjs"
+
+    def fake_run_test_command(repo_path: str, command: str, timeout: int = 120) -> CommandResult:
+        assert command == "npm run typecheck"
+        return CommandResult(
+            command=["npm", "run", "typecheck"],
+            cwd=repo_path,
+            stdout="ok\n",
+            stderr="",
+            returncode=0,
+            success=True,
+        )
+
+    monkeypatch.setattr(rt, "run_test_command", fake_run_test_command)
+    monkeypatch.setattr(rt, "_recommend_test_command", lambda state: pytest.fail("LLM should not be called"))
+
+    update = rt.run_tests_node(state)
+
+    assert update["tests_passed"] is True
+    assert update["test_command"] == "npm run typecheck"
+    assert "Inferred npm run typecheck" in update["test_output"]
 
 
 def test_run_tests_returns_failure_when_no_safe_command(monkeypatch: pytest.MonkeyPatch) -> None:
