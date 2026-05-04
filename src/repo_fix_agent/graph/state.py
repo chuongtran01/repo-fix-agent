@@ -118,6 +118,19 @@ class AgentState(TypedDict):
             "Workflow decision produced after reviewing the latest verification result",
         ]
     ]
+    review_category: NotRequired[
+        Annotated[
+            Literal[
+                "verification_passed",
+                "code_or_test_failure",
+                "command_selection_failure",
+                "setup_or_dependency_failure",
+                "timeout_or_infra_failure",
+                "manual_review_required",
+            ],
+            "High-level classification of the latest verification result",
+        ]
+    ]
     review_reason: NotRequired[
         Annotated[str, "Short explanation for the review outcome decision"]
     ]
@@ -162,6 +175,7 @@ def create_initial_state(
         "test_output": "",
         "tests_passed": False,
         "review_outcome": "failure",
+        "review_category": "manual_review_required",
         "review_reason": "",
         "review_notes": [],
         "iteration": 0,

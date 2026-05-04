@@ -30,6 +30,7 @@ def test_review_result_node_increments_iteration_on_retry(
         def invoke(self, messages: object) -> ReviewResultOutput:
             captured["messages"] = messages
             return ReviewResultOutput(
+                category="code_or_test_failure",
                 outcome="retry",
                 reason="Tests failed with a likely fixable assertion mismatch.",
                 review_notes=["Retry the fix with closer attention to auth response handling."],
@@ -49,6 +50,7 @@ def test_review_result_node_increments_iteration_on_retry(
     update = rr.review_result_node(state)
 
     assert update == {
+        "review_category": "code_or_test_failure",
         "review_outcome": "retry",
         "review_reason": "Tests failed with a likely fixable assertion mismatch.",
         "review_notes": ["Retry the fix with closer attention to auth response handling."],
@@ -73,6 +75,7 @@ def test_review_result_node_preserves_iteration_on_success(
     class FakeStructured:
         def invoke(self, messages: object) -> ReviewResultOutput:
             return ReviewResultOutput(
+                category="verification_passed",
                 outcome="success",
                 reason="Verification passed successfully.",
                 review_notes=[],
@@ -92,6 +95,7 @@ def test_review_result_node_preserves_iteration_on_success(
     update = rr.review_result_node(state)
 
     assert update == {
+        "review_category": "verification_passed",
         "review_outcome": "success",
         "review_reason": "Verification passed successfully.",
         "review_notes": [],
@@ -114,6 +118,7 @@ def test_review_result_node_stops_retry_at_max_iterations(
     class FakeStructured:
         def invoke(self, messages: object) -> ReviewResultOutput:
             return ReviewResultOutput(
+                category="code_or_test_failure",
                 outcome="retry",
                 reason="Tests still look recoverable with another edit.",
                 review_notes=["Try a smaller follow-up change."],
@@ -133,6 +138,7 @@ def test_review_result_node_stops_retry_at_max_iterations(
     update = rr.review_result_node(state)
 
     assert update == {
+        "review_category": "code_or_test_failure",
         "review_outcome": "failure",
         "review_reason": (
             "Tests still look recoverable with another edit. "

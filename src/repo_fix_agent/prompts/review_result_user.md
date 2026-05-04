@@ -31,4 +31,5 @@ Verification output:
 Known errors:
 {errors}
 
-Choose the safest next action for the workflow based on this result.
+Choose the safest next action for the workflow based on this result, and
+classify the kind of failure or success explicitly.

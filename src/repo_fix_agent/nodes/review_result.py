@@ -48,6 +48,7 @@ def review_result_node(state: AgentState) -> dict[str, object]:
     max_iterations = state["max_iterations"]
 
     update: dict[str, object] = {
+        "review_category": response.category,
         "review_outcome": response.outcome,
         "review_reason": response.reason,
         "review_notes": review_notes,
