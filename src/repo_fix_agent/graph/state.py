@@ -137,6 +137,12 @@ class AgentState(TypedDict):
     review_notes: NotRequired[
         Annotated[list[str], "Additional guidance or follow-up notes from result review"]
     ]
+    rolled_back_files: NotRequired[
+        Annotated[
+            list[str],
+            "Files that were modified during the run and then restored or removed during rollback",
+        ]
+    ]
 
     iteration: Annotated[int, "Current retry-loop attempt count for the workflow"]
     max_iterations: Annotated[int, "Maximum number of retry-loop attempts allowed"]
@@ -178,6 +184,7 @@ def create_initial_state(
         "review_category": "manual_review_required",
         "review_reason": "",
         "review_notes": [],
+        "rolled_back_files": [],
         "iteration": 0,
         "max_iterations": max_iterations,
         "errors": [],

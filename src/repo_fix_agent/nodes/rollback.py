@@ -14,6 +14,7 @@ def rollback_node(state: AgentState) -> dict[str, object]:
     existing_notes = list(state.get("review_notes", []))
     restored_files: list[str] = []
     removed_files: list[str] = []
+    rolled_back_files = sorted(set(state.get("rolled_back_files", [])) | set(changed_files))
 
     for file_path in changed_files:
         _, full_path = resolve_repo_file_path(repo_path, file_path)
@@ -37,6 +38,7 @@ def rollback_node(state: AgentState) -> dict[str, object]:
         notes.append("Removed files: " + ", ".join(removed_files))
 
     return {
-        "changed_files": [],
+        "changed_files": changed_files,
+        "rolled_back_files": rolled_back_files,
         "review_notes": notes,
     }

@@ -7,6 +7,7 @@ def final_summary_node(state: AgentState) -> dict[str, object]:
     """Build a concise final summary from the latest workflow state."""
     request_summary = state.get("request_summary") or state["user_request"]
     changed_files = state.get("changed_files", [])
+    rolled_back_files = state.get("rolled_back_files", [])
     review_outcome = state.get("review_outcome", "failure")
     review_reason = state.get("review_reason", "")
     tests_passed = state.get("tests_passed", False)
@@ -23,6 +24,10 @@ def final_summary_node(state: AgentState) -> dict[str, object]:
         lines.extend(f"- {path}" for path in changed_files)
     else:
         lines.append("Changed files: none")
+
+    if rolled_back_files:
+        lines.append("Rolled back files:")
+        lines.extend(f"- {path}" for path in rolled_back_files)
 
     if test_command:
         lines.append(f"Test command: {test_command}")
